@@ -9,6 +9,7 @@ import {
 import SetupRequired from "./components/SetupRequired";
 import AppShell from "./components/layout/AppShell";
 import Spinner from "./components/ui/Spinner";
+import InstallPrompt from "./components/pwa/InstallPrompt";
 
 // Eager — first paint / unauthenticated.
 import Login from "./pages/Login";
@@ -36,7 +37,8 @@ export default function App() {
   if (!configured) return <SetupRequired />;
 
   return (
-    <Routes>
+    <>
+      <Routes>
       <Route
         path="/login"
         element={
@@ -107,6 +109,8 @@ export default function App() {
 
       <Route path="/404" element={<NotFound />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
-    </Routes>
+      </Routes>
+      <InstallPrompt />
+    </>
   );
 }
