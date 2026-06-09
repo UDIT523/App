@@ -252,7 +252,8 @@ export default function Inventory() {
             <TH className="text-right">Stock</TH>
             <TH>Unit</TH>
             <TH className="text-right">Reorder</TH>
-            <TH>Last issue</TH>
+            <TH>Last Added</TH>
+            <TH>Last Transaction</TH>
             {canWrite && <TH className="w-10" />}
           </THead>
           <TBody>
@@ -307,11 +308,16 @@ export default function Inventory() {
                   </TD>
                   <TD className="text-ink-500">{row.unit}</TD>
                   <TD className="text-right tabular-nums text-ink-500">
-                    {row.reorder_level}
-                  </TD>
-                  <TD className="whitespace-nowrap text-ink-500">
-                    {formatDate(row.last_issue_date)}
-                  </TD>
+  {row.reorder_level}
+</TD>
+
+<TD className="whitespace-nowrap text-ink-500">
+  {formatDate(row.last_added_date)}
+</TD>
+
+<TD className="whitespace-nowrap text-ink-500">
+  {formatDate(row.last_issue_date)}
+</TD>
                   {canWrite && (
                     <TD>
                       <button

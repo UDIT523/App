@@ -12,7 +12,7 @@ export async function listInventory() {
     .from("part_usages")
     .select(
       `id,
-       part:parts(id, name, unit, quantity, reorder_level, image_url, last_issue_date),
+       part:parts(id, name, unit, quantity, reorder_level, image_url, last_added_date,last_issue_date),
        sub_machine:sub_machines(id, name, machine:machines(id, name))`
     );
   if (error) throw error;
@@ -28,6 +28,7 @@ export async function listInventory() {
       reorder_level: u.part.reorder_level,
       image_url: u.part.image_url,
       last_issue_date: u.part.last_issue_date,
+      last_added_date: u.part.last_added_date,
       machine: u.sub_machine.machine?.name || "",
       subMachine: u.sub_machine.name,
       subMachineId: u.sub_machine.id,
@@ -78,7 +79,7 @@ export async function addOrUpdatePart({
   if (existing) {
     const patch = {
       quantity: existing.quantity + qty,
-      last_issue_date: today,
+      last_added_date: today,
     };
     if (unit?.trim()) patch.unit = unit.trim();
     if (imageUrl) patch.image_url = imageUrl;
@@ -99,7 +100,7 @@ export async function addOrUpdatePart({
         quantity: qty,
         reorder_level: Number(reorderLevel) || 0,
         image_url: imageUrl || null,
-        last_issue_date: today,
+        last_added_date: today,
       })
       .select("id")
       .single();
@@ -161,17 +162,51 @@ export async function deleteInventoryRows(rows) {
 /** Bulk import (from Excel/CSV) — applies the same add/merge logic per row. */
 export async function importParts(rows) {
   let imported = 0;
+
   for (const row of rows) {
     if (!row.name?.trim()) continue;
-    await addOrUpdatePart({
-      machine: row.machine || "",
-      subMachine: row.subMachine || "",
-      name: row.name,
-      quantity: row.quantity || 0,
-      unit: row.unit || "Nos",
-      reorderLevel: row.reorderLevel || 0,
-    });
-    imported += 1;
+
+    const machineId = await getOrCreateMachine(row.machine);
+    const subMachineId = await getOrCreateSubMachine(
+      machineId,
+      row.subMachine
+    );
+
+    let part = await findPartByName(row.name);
+
+    if (!part) {
+      const { data, error } = await supabase
+        .from("parts")
+        .insert({
+          name: row.name.trim(),
+          quantity: Number(row.quantity) || 0,
+          unit: row.unit || "Nos",
+          reorder_level: Number(row.reorderLevel) || 0,
+          last_added_date: new Date().toISOString().split("T")[0],
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      part = data;
+    }
+
+    const { error } = await supabase
+      .from("part_usages")
+      .upsert(
+        {
+          part_id: part.id,
+          sub_machine_id: subMachineId,
+        },
+        {
+          onConflict: "part_id,sub_machine_id",
+        }
+      );
+
+    if (error) throw error;
+
+    imported++;
   }
+
   return imported;
 }
