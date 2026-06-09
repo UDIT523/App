@@ -30,8 +30,12 @@ export default function Register() {
         password: values.password,
         fullName: values.fullName,
       });
-      toast.success("Account created", "Welcome to SparePro");
-      navigate("/", { replace: true });
+      toast.success(
+  "Request submitted",
+  "Your account is awaiting administrator approval."
+);
+
+navigate("/login", { replace: true });
     } catch (e) {
       toast.error("Registration failed", e.message);
     } finally {

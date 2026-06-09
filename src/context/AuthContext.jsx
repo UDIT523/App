@@ -43,14 +43,12 @@ export function AuthProvider({ children }) {
     [persist]
   );
 
-  const register = useCallback(
-    async (values) => {
-      const u = await registerUser(values);
-      persist(u);
-      return u;
-    },
-    [persist]
-  );
+const register = useCallback(
+  async (values) => {
+    return await registerUser(values);
+  },
+  []
+);
 
   const logout = useCallback(() => persist(null), [persist]);
 
