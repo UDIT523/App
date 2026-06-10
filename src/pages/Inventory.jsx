@@ -27,6 +27,7 @@ import { isLowStock, formatDate } from "../utils/format";
 import {
   exportInventory,
   parseInventoryFile,
+  parseReceiveStockFile,
 } from "../utils/excel";
 import {
   inventoryToCSV,
@@ -35,12 +36,12 @@ import {
 
 export default function Inventory() {
   const { data: rows = [], isLoading } = useInventory();
-  const { remove, importMany } = usePartMutations();
+  const { remove, importMany, receiveMany } = usePartMutations();
   const { can } = useAuth();
   const toast = useToast();
   const confirm = useConfirm();
   const fileRef = useRef(null);
-
+  const receiveFileRef = useRef(null);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(new Set());
   const [modalOpen, setModalOpen] = useState(false);
@@ -119,6 +120,28 @@ export default function Inventory() {
     }
   };
 
+  const handleReceiveStock = async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  try {
+    const parsed = await parseReceiveStockFile(file);
+
+    const count = await receiveMany.mutateAsync(parsed);
+
+    toast.success(
+      "Stock received",
+      `${count} part(s) updated`
+    );
+  } catch (err) {
+    toast.error("Receive stock failed", err.message);
+  } finally {
+    if (receiveFileRef.current) {
+      receiveFileRef.current.value = "";
+    }
+  }
+};
+
   const handleCopy = async () => {
     if (rows.length === 0) return toast.info("Nothing to copy");
     try {
@@ -155,6 +178,13 @@ export default function Inventory() {
                 className="hidden"
                 onChange={handleImport}
               />
+              <input
+              ref={receiveFileRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={handleReceiveStock}
+              />
               <Button variant="secondary" size="sm" onClick={handleCopy} aria-label="Copy CSV">
                 <Copy className="h-4 w-4" /> <span className="hidden md:inline">Copy</span>
               </Button>
@@ -162,13 +192,26 @@ export default function Inventory() {
                 <ClipboardPaste className="h-4 w-4" /> <span className="hidden md:inline">Paste</span>
               </Button>
               <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => fileRef.current?.click()}
-                aria-label="Import from Excel"
-              >
-                <Upload className="h-4 w-4" /> <span className="hidden md:inline">Import</span>
-              </Button>
+  variant="secondary"
+  size="sm"
+  onClick={() => fileRef.current?.click()}
+>
+  <Upload className="h-4 w-4" />
+  <span className="hidden md:inline">
+    Import Inventory
+  </span>
+</Button>
+
+<Button
+  variant="secondary"
+  size="sm"
+  onClick={() => receiveFileRef.current?.click()}
+>
+  <Plus className="h-4 w-4" />
+  <span className="hidden md:inline">
+    Receive Stock
+  </span>
+</Button>
               <Button variant="secondary" size="sm" onClick={handleExport} aria-label="Export to Excel">
                 <Download className="h-4 w-4" /> <span className="hidden md:inline">Export</span>
               </Button>

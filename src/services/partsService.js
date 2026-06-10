@@ -210,3 +210,35 @@ export async function importParts(rows) {
 
   return imported;
 }
+
+export async function receiveStock(rows) {
+  let updated = 0;
+
+  for (const row of rows) {
+    if (!row.name?.trim()) continue;
+
+    const part = await findPartByName(row.name);
+
+    if (!part) {
+      throw new Error(`Part not found: ${row.name}`);
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+
+    const { error } = await supabase
+      .from("parts")
+      .update({
+        quantity:
+          Number(part.quantity || 0) +
+          Number(row.quantity || 0),
+        last_added_date: today,
+      })
+      .eq("id", part.id);
+
+    if (error) throw error;
+
+    updated++;
+  }
+
+  return updated;
+}

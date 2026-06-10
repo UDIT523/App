@@ -5,6 +5,7 @@ import {
   updatePart,
   deleteInventoryRows,
   importParts,
+  receiveStock,
 } from "../services/partsService";
 import { useRealtime } from "./useRealtime";
 
@@ -34,5 +35,10 @@ export function usePartMutations() {
     onSuccess: invalidate,
   });
 
-  return { add, edit, remove, importMany };
+  const receiveMany = useMutation({
+  mutationFn: receiveStock,
+  onSuccess: invalidate,
+  });
+
+  return { add, edit, remove, importMany ,receiveMany, };
 }

@@ -71,3 +71,33 @@ export function exportTransactions(rows) {
   XLSX.utils.book_append_sheet(wb, ws, "Transactions");
   XLSX.writeFile(wb, "Transaction_History.xlsx");
 }
+
+export function parseReceiveStockFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(new Error("Could not read file"));
+
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: "binary" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(ws);
+
+        const rows = json.map((row) => ({
+          name:
+            row["Part Name"] ||
+            row["Spare Part Name"] ||
+            "",
+          quantity: Number(row["Quantity"] ?? 0),
+        }));
+
+        resolve(rows);
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    reader.readAsBinaryString(file);
+  });
+}
