@@ -14,7 +14,17 @@ const STORAGE_KEY = "sparepro.currentUser";
 function readStoredUser() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+
+    if (!raw) return null;
+
+    const user = JSON.parse(raw);
+
+    if (user.status !== "approved") {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+
+    return user;
   } catch {
     return null;
   }
@@ -30,8 +40,11 @@ export function AuthProvider({ children }) {
 
   const persist = useCallback((u) => {
     setUser(u);
-    if (u) localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-    else localStorage.removeItem(STORAGE_KEY);
+    if (u?.status === "approved") {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+} else {
+  localStorage.removeItem(STORAGE_KEY);
+}
   }, []);
 
   const login = useCallback(
@@ -53,7 +66,20 @@ const register = useCallback(
   const logout = useCallback(() => persist(null), [persist]);
 
   // No authentication → everyone can do everything.
-  const can = useCallback(() => true, []);
+const can = useCallback(
+  (perm) => {
+    if (!user) return false;
+
+    if (user.role === "admin") return true;
+
+    if (user.role === "technician") {
+      return perm !== "users:manage";
+    }
+
+    return false;
+  },
+  [user]
+);
 
   const value = useMemo(
     () => ({
