@@ -31,27 +31,110 @@ export function exportInventory(rows) {
 export function parseInventoryFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Could not read file"));
+
+    reader.onerror = () =>
+      reject(new Error("Could not read file"));
+
     reader.onload = (e) => {
       try {
-        const wb = XLSX.read(e.target.result, { type: "binary" });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(ws);
-        const rows = json.map((row) => ({
-          machine: row[INV_HEADERS.machine] || "",
-          subMachine: row[INV_HEADERS.subMachine] || "",
-          name: row[INV_HEADERS.name] || "",
-          quantity: Number(
-            row[INV_HEADERS.quantity] ?? row["Current Stock"] ?? 0
-          ),
-          unit: row[INV_HEADERS.unit] || "Nos",
-          reorderLevel: Number(row[INV_HEADERS.reorderLevel] ?? 0),
-        }));
+        const wb = XLSX.read(
+          e.target.result,
+          { type: "binary" }
+        );
+
+        const ws =
+          wb.Sheets[wb.SheetNames[0]];
+
+        const json =
+          XLSX.utils.sheet_to_json(ws);
+
+        const rows = json.map((row) => {
+          const normalized = {};
+
+          Object.keys(row).forEach((key) => {
+            normalized[
+              key
+                .toLowerCase()
+                .trim()
+            ] = row[key];
+          });
+
+          return {
+            machine:
+              normalized[
+                "machine name"
+              ] ||
+              normalized[
+                "machine"
+              ] ||
+              "",
+
+            subMachine:
+              normalized[
+                "sub-machine name"
+              ] ||
+              normalized[
+                "sub machine name"
+              ] ||
+              normalized[
+                "sub-machine"
+              ] ||
+              "",
+
+            name:
+              normalized[
+                "spare part name"
+              ] ||
+              normalized[
+                "part name"
+              ] ||
+              normalized[
+                "spare part"
+              ] ||
+              "",
+
+            quantity: Number(
+              normalized[
+                "current stock quantity"
+              ] ??
+                normalized[
+                  "current stock"
+                ] ??
+                normalized[
+                  "stock"
+                ] ??
+                normalized[
+                  "quantity"
+                ] ??
+                0
+            ),
+
+            unit:
+              normalized[
+                "unit"
+              ] || "Nos",
+
+            reorderLevel: Number(
+              normalized[
+                "reorder level"
+              ] ??
+                normalized[
+                  "reorder"
+                ] ??
+                normalized[
+                  "minimum stock"
+                ] ??
+                0
+            ),
+          };
+        });
+
         resolve(rows);
       } catch (err) {
         reject(err);
       }
     };
+
     reader.readAsBinaryString(file);
   });
 }
